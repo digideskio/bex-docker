@@ -10,10 +10,6 @@ RUN echo "deb http://archive.ubuntu.com/ubuntu precise main universe" > /etc/apt
 RUN apt-get update
 RUN apt-get upgrade -y
 
-# Download the JIRA installer 
-#ADD http://www.atlassian.com/software/jira/downloads/binary/atlassian-jira-6.1-rc2-x64.bin /
-ADD ./atlassian-jira-6.1-rc2-x64.bin /
-
 # Fake a Fuse install - openjdk-7-jdk seems to pull in fuse, but doens't actively use it
 # https://gist.github.com/henrik-muehe/6155333
 RUN apt-get install libfuse2
@@ -28,17 +24,10 @@ RUN cd /tmp ; dpkg -i /fuse.deb
 # Install OpenJDK7
 RUN apt-get install -y openjdk-7-jdk
 
-# Install PostgreSQL
-RUN apt-get install -y postgresql
-
-# Start PostgreSQL service
-#RUN service postgresql start
-
-# Setup Jira user in PostgreSQL
-#RUN su postgres -c "psql -c \"CREATE USER jira WITH PASSWORD 'jira';\"" 
-#RUN su postgres -c "createdb --owner jira --encoding utf8 jira"
-RUN echo "CREATE USER jira WITH PASSWORD 'jira';" | su postgres sh -c "/usr/lib/postgresql/9.1/bin/postgres --single --config-file=/etc/postgresql/9.1/main/postgresql.conf"
-RUN echo "CREATE DATABASE jira WITH OWNER jira ENCODING 'UTF8';" | su postgres sh -c "/usr/lib/postgresql/9.1/bin/postgres --single --config-file=/etc/postgresql/9.1/main/postgresql.conf"
+# Download the JIRA installer
+# NB: ADD commands can't be cached, nor can anything after an ADD - https://github.com/dotcloud/docker/issues/1903
+#ADD http://www.atlassian.com/software/jira/downloads/binary/atlassian-jira-6.1-rc2-x64.bin /
+ADD ./atlassian-jira-6.1-rc2-x64.bin /
 
 # Run the installer
 ADD response.varfile /
@@ -46,6 +35,6 @@ RUN chmod a+x /atlassian-jira-6.1-rc2-x64.bin
 RUN /atlassian-jira-6.1-rc2-x64.bin -q -varfile response.varfile
 
 #
-EXPOSE 8080
+EXPOSE 80:8080
 
 CMD ["/opt/atlassian/jira/bin/start-jira.sh", "-fg"]
